@@ -58,19 +58,19 @@ void read_command(char **cmd)
 void type_prompt()
 {
   // Use a static variable to check if this is the first call to the function
-  static int first_time = 1;
-  if (first_time)
-  {
-    // Clear the screen on the first call
-#ifdef _WIN32
-    system("cls"); // Windows command to clear screen
-#else
-    system("clear"); // UNIX/Linux command to clear screen
-#endif
-    first_time = 0;
-  }
-  fflush(stdout); // Flush the output buffer
-
+//  static int first_time = 1;
+//  if (first_time)
+//  {
+//    // Clear the screen on the first call
+//#ifdef _WIN32
+//    system("cls"); // Windows command to clear screen
+//#else
+//    system("clear"); // UNIX/Linux command to clear screen
+//#endif
+//    first_time = 0;
+//  }
+//  fflush(stdout); // Flush the output buffer
+//
   printf("$$ ");  // Print the shell prompt
 }
 
@@ -186,7 +186,6 @@ int list_env(char **args)
 
 int set_env_var(char **args)
 {
- printf("hehe %d",args[1]);
   putenv(args[1]);
   return 1;
 }
@@ -210,90 +209,85 @@ int main(void)
   int inbuilt_flag;
   int init_path;
   char full_path[PATH_MAX];
+  char *rc_cmd[MAX_ARGS][MAX_ARGS];
+  int num_rc_cmd = 0;
 
+  //run .rc
+  FILE *fptr;
 
-//run .rc
-FILE *fptr;
+  // Open rc file in read mode
+  fptr = fopen(".cseshellrc", "r");
+  if (fptr == NULL) {
+    perror("Failed to open file");
+    return EXIT_FAILURE;
+  }
 
-// Open rc file in read mode
-fptr = fopen(".cseshellrc", "r");
+  char line[MAX_LINE];
+  while (fgets(line, sizeof(line), fptr)) {
 
-// Store the content of the file
+    // Remove newline character
+    //line[strcspn(line, "\n")] = 0;
 
-char * line = NULL;
-size_t len = 0;
-ssize_t read;
-
-// Read the content and print it
-
-while ((read = getline(&line, &len, fptr)) != -1) {
-printf("Retrieved line of length %zu:", read);
-printf("%s", line);
-bool pathSet=false;
-char patheq[6] = "PATH=";
-char firstFive[6]; //first 5 chars of line
-if(read>=5){
-memcpy( firstFive, &line[0], 5 );
-firstFive[5] = '\0';
-printf("DONG! %s",line);
-  if(strcmp(firstFive,patheq)==0){
-//set path variable here
-pathSet=true;
-char path[read-4];
-memcpy( path, &line[5], read-5 );
-
-path[read-4]='\0';
-setenv("PATH",path,1);
-                }
-        }
-if(!pathSet){
-    char *args[] = {"cal", NULL, NULL}; // Lists in long format
-	pid_t pid = fork();
-        if (pid == -1)
-        {
-            // If fork() returns -1, an error occurred
-            perror("fork failed");
-            exit(EXIT_FAILURE);
-        }
-        else if (pid == 0)
-        {
-            // Child process
-            execvp(args[0],args);
-            _exit(EXIT_SUCCESS); // Exit child process, should've used _exit(EXIT_SUCCESS) instead
-        }
-        else
-        {
-            // Parent process
-            int status;
-            waitpid(pid, &status, 0); // Wait for child process to finish
-        }
-
-   
-}
-
-}
-
-// Close the file
-fclose(fptr);
-
-  for (;;)
-  {
-    type_prompt();     // Display the prompt
-    read_command(cmd); // Read a command from the user
-
-    if (init_path == 0)
-    {
-      init_path = 1;
-      // Formulate the full path of the command to be executed
-      if (getcwd(wd, sizeof(wd)) != NULL)
-      {
-      }
-      else
-      {
-        printf("Failed to get current working directory.");
-        exit(1);
-      }
+    char *newline = strchr(line, '\n');
+    if (newline != NULL) {
+      *newline = '\0';
     }
+
+    // Check for "PATH"
+    if (strncmp(line, "PATH", 4) == 0) {
+      char *path = line + 5;
+      setenv("PATH", path, 1);
+      continue;
+    }
+    // Store commands
+    else {
+      int i = 0;
+      char *cmd[MAX_ARGS], *cmd_token;
+
+      // Use strtok to parse the first token (word) of the command
+      cmd_token = strtok(line, " ");
+
+      // Continue parsing the line into words and store them in the array
+      while (cmd_token != NULL) {
+        cmd[i++] = strdup(cmd_token);  // Duplicate the token and store it
+        cmd_token = strtok(NULL, " "); // Get the next token
+      }
+
+      // Null-terminate the cmd array to mark the end of arguments
+      cmd[i] = NULL;
+
+      // Store commands in rc_cmd
+      for (int j = 0; j < i; j++) {
+        rc_cmd[num_rc_cmd][j] = cmd[j];
+      }
+      rc_cmd[num_rc_cmd][i] = NULL;
+      num_rc_cmd++;
+    }
+  }
+  fclose(fptr);
+
+  if (init_path == 0)
+  {
+    init_path = 1;
+    // Formulate the full path of the command to be executed
+    if (getcwd(wd, sizeof(wd)) != NULL)
+    {
+    }
+    else
+    {
+      printf("Failed to get current working directory.");
+      exit(1);
+    }
+  }
+
+  // Execute .cseshellrc
+  for (int i = 0; i < num_rc_cmd; i++) {
+    // Copy command into cmd
+    for (int j = 0; rc_cmd[i][j] != NULL; j++) {
+      cmd[j] = rc_cmd[i][j];
+    }
+    // Null-terminate the cmd array to mark the end of arguments
+    cmd[num_rc_cmd] = NULL;
 
     // skip execution if command is empty
     if (cmd[0] == NULL)
@@ -317,7 +311,81 @@ fclose(fptr);
     }
     else if (inbuilt_status == 1)
     {
-      // clear the cwd array
+      // clear the cmd array
+      memset(cmd, '\0', sizeof(cmd));
+      continue;
+    }
+    pid = fork();
+
+    if (pid < 0)
+    {
+      printf("Fork failed.");
+      exit(1);
+    }
+    // child process
+    else if (pid == 0)
+    {
+      execvp(cmd[0], cmd);
+
+      // if execvp returns, command execution has failed
+      printf("Command %s not found\n", cmd[0]);
+      exit(0);
+
+      // Free the allocated memory for the command arguments before exiting
+      for (int i = 0; cmd[i] != NULL; i++)
+      {
+        free(cmd[i]);
+      }
+    }
+
+    // parent process
+    else
+    {
+      waitpid(pid, &status, WUNTRACED);
+      // if child terminates properly
+      if (WIFEXITED(status))
+      {
+        child_exit_status = WEXITSTATUS(status);
+      }
+      // checks child_exit_status and do something about it
+      if (child_exit_status != 0)
+      {
+        printf("Command %s failed with exit code %d\n", cmd[0], child_exit_status);
+      }
+    }
+
+    // clear the cmd array
+    memset(cmd, '\0', sizeof(cmd));
+  }
+
+  for (;;)
+  {
+    type_prompt();     // Display the prompt
+    read_command(cmd); // Read a command from the user
+
+    // skip execution if command is empty
+    if (cmd[0] == NULL)
+      continue;
+
+    inbuilt_status = 2;
+    // Loop through our command list and check if the commands exist in the builtin command list
+    for (int command_index = 0; command_index < num_builtin_functions(); command_index++)
+    {
+        if (strcmp(cmd[0], builtin_commands[command_index]) == 0) // Assume args[0] contains the first word of the command
+        {
+          // We will create new process to run the function with the specific command except for builtin commands.
+          // These have to be done by the shell process.
+          inbuilt_status = (*builtin_command_func[command_index])(cmd);
+          break;
+        }
+    }
+    if (inbuilt_status == 0)
+    {
+      return 0;
+    }
+    else if (inbuilt_status == 1)
+    {
+      // clear the cmd array
       memset(cmd, '\0', sizeof(cmd));
       continue;
     }
@@ -363,7 +431,7 @@ fclose(fptr);
       }
     }
 
-    // clear the cwd array
+    // clear the cmd array
     memset(cmd, '\0', sizeof(cmd));
 
   }

@@ -20,6 +20,8 @@
 #include <sys/types.h>
 #include <pwd.h>
 #include <sys/utsname.h>
+#include <sys/sysinfo.h>
+#include <libgen.h>
 
 #define _GNU_SOURCE
 
