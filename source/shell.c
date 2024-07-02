@@ -1,6 +1,6 @@
 // Include the shell header file for necessary constants and function declarations
 #include "shell.h"
-
+#include <stdbool.h>
 // Function to read a command from the user input
 void read_command(char **cmd)
 {
@@ -70,6 +70,7 @@ void type_prompt()
     first_time = 0;
   }
   fflush(stdout); // Flush the output buffer
+
   printf("$$ ");  // Print the shell prompt
 }
 
@@ -185,6 +186,7 @@ int list_env(char **args)
 
 int set_env_var(char **args)
 {
+ printf("hehe %d",args[1]);
   putenv(args[1]);
   return 1;
 }
@@ -208,6 +210,71 @@ int main(void)
   int inbuilt_flag;
   int init_path;
   char full_path[PATH_MAX];
+
+
+//run .rc
+FILE *fptr;
+
+// Open rc file in read mode
+fptr = fopen(".cseshellrc", "r");
+
+// Store the content of the file
+
+char * line = NULL;
+size_t len = 0;
+ssize_t read;
+
+// Read the content and print it
+
+while ((read = getline(&line, &len, fptr)) != -1) {
+printf("Retrieved line of length %zu:", read);
+printf("%s", line);
+bool pathSet=false;
+char patheq[6] = "PATH=";
+char firstFive[6]; //first 5 chars of line
+if(read>=5){
+memcpy( firstFive, &line[0], 5 );
+firstFive[5] = '\0';
+printf("DONG! %s",line);
+  if(strcmp(firstFive,patheq)==0){
+//set path variable here
+pathSet=true;
+char path[read-4];
+memcpy( path, &line[5], read-5 );
+
+path[read-4]='\0';
+setenv("PATH",path,1);
+                }
+        }
+if(!pathSet){
+    char *args[] = {"cal", NULL, NULL}; // Lists in long format
+	pid_t pid = fork();
+        if (pid == -1)
+        {
+            // If fork() returns -1, an error occurred
+            perror("fork failed");
+            exit(EXIT_FAILURE);
+        }
+        else if (pid == 0)
+        {
+            // Child process
+            execvp(args[0],args);
+            _exit(EXIT_SUCCESS); // Exit child process, should've used _exit(EXIT_SUCCESS) instead
+        }
+        else
+        {
+            // Parent process
+            int status;
+            waitpid(pid, &status, 0); // Wait for child process to finish
+        }
+
+   
+}
+
+}
+
+// Close the file
+fclose(fptr);
 
   for (;;)
   {
