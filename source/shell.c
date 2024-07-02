@@ -1,86 +1,97 @@
 // Include the shell header file for necessary constants and function declarations
 #include "shell.h"
-#include <stdbool.h>
+
 // Function to read a command from the user input
-void read_command(char **cmd)
-{
+void read_command(char **cmd){
   // Define a character array to store the command line input
   char line[MAX_LINE];
   // Initialize count to keep track of the number of characters read
   int count = 0, i = 0;
   // Array to hold pointers to the parsed command arguments
   char *array[MAX_ARGS], *command_token;
+  struct timeval time_val;
+  // Set up select to wait for input
+  fd_set readfds;
+  FD_ZERO(&readfds);
+  FD_SET(STDIN_FILENO, &readfds);
 
-  // Infinite loop to read characters until a newline or maximum line length is reached
-  for (;;)
-  {
-    // Read a single character from standard input
-    int current_char = fgetc(stdin);
-    // Store the character in the line array and increment count
-    line[count++] = (char)current_char;
-    // If a newline character is encountered, break out of the loop
-    if (current_char == '\n')
-      break;
-    // If the command exceeds the maximum length, print an error and exit
-    if (count >= MAX_LINE)
+  // Set timeout value
+  time_val.tv_sec = 30;
+  time_val.tv_usec = 0;
+
+  // select() to wait for input from stdin
+  int sel_val = select(STDIN_FILENO + 1 , &readfds, NULL, NULL, &time_val);
+  if (sel_val == -1) {
+    perror("select() error");
+    exit(EXIT_FAILURE);
+  }
+  else if (sel_val == 0) {
+    printf("\nShell is idle. Continue where you left off in the above command.\n");
+  }
+  else {
+    // Infinite loop to read characters until a newline or maximum line length is reached
+    for (;;)
     {
-      printf("Command is too long, unable to process\n");
-      exit(1);
+      // Read a single character from standard input
+      int current_char = fgetc(stdin);
+      // Store the character in the line array and increment count
+      line[count++] = (char)current_char;
+      // If a newline character is encountered, break out of the loop
+      if (current_char == '\n')
+        break;
+      // If the command exceeds the maximum length, print an error and exit
+      if (count >= MAX_LINE)
+      {
+        printf("Command is too long, unable to process\n");
+        exit(1);
+      }
     }
+    // Null-terminate the command line string
+    line[count] = '\0';
+
+    // If only the newline character was entered, return without processing
+    if (count == 1)
+      return;
+
+    // Use strtok to parse the first token (word) of the command
+    command_token = strtok(line, " \n");
+
+    // Continue parsing the line into words and store them in the array
+    while (command_token != NULL)
+    {
+      array[i++] = strdup(command_token);  // Duplicate the token and store it
+      command_token = strtok(NULL, " \n"); // Get the next token
+    }
+
+    // Copy the parsed command and its parameters to the cmd array
+    for (int j = 0; j < i; j++)
+    {
+      cmd[j] = array[j];
+    }
+    // Null-terminate the cmd array to mark the end of arguments
+    cmd[i] = NULL;
   }
-  // Null-terminate the command line string
-  line[count] = '\0';
-
-  // If only the newline character was entered, return without processing
-  if (count == 1)
-    return;
-
-  // Use strtok to parse the first token (word) of the command
-  command_token = strtok(line, " \n");
-
-  // Continue parsing the line into words and store them in the array
-  while (command_token != NULL)
-  {
-    array[i++] = strdup(command_token);  // Duplicate the token and store it
-    command_token = strtok(NULL, " \n"); // Get the next token
-  }
-
-  // Copy the parsed command and its parameters to the cmd array
-  for (int j = 0; j < i; j++)
-  {
-    cmd[j] = array[j];
-  }
-  // Null-terminate the cmd array to mark the end of arguments
-  cmd[i] = NULL;
 }
 
 // Function to display the shell prompt
 void type_prompt()
 {
-  // Use a static variable to check if this is the first call to the function
-//  static int first_time = 1;
-//  if (first_time)
-//  {
-//    // Clear the screen on the first call
-//#ifdef _WIN32
-//    system("cls"); // Windows command to clear screen
-//#else
-//    system("clear"); // UNIX/Linux command to clear screen
-//#endif
-//    first_time = 0;
-//  }
-//  fflush(stdout); // Flush the output buffer
-//
   printf("$$ ");  // Print the shell prompt
+  fflush(stdout);
 }
 
 int shell_cd(char **args)
 {
   char cwd[1024];
+  char* pwd = getenv("PWD");
 
   if (args[1] == NULL)
   {
-    printf("Expected \"cd <directory>\"\n");
+    chdir(pwd);
+    if (getcwd(cwd, sizeof(cwd)) != NULL)
+    {
+      printf("Current working directory: %s\n", cwd);
+    }
   }
   else
   {
@@ -136,7 +147,7 @@ int shell_usage(char **args)
   }
   else if (strcmp(args[1], "cd") == 0)
   {
-    printf("Type: cd directory_name to change the current working directory of the shell\n");
+    printf("Type: cd directory_name to change the current working directory of the shell. If no path is given, it defaults to the user's home directory.\n");
   }
   else if (strcmp(args[1], "help") == 0)
   {

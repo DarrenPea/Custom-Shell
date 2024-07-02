@@ -64,3 +64,27 @@ make clean
 ## Source Directory
 
 Contains all the necessary source code for the shell and system programs. It is divided into the shell implementation (`shell.c`, `shell.h`) and system programs (`system_programs/`).
+
+
+## Builtin Functions Supported
+- `cd` - Changes the current directory of the shell to the specified path. If no path is given, it defaults to the project directory.
+- `help` - List all builtin commands in the shell.
+- `exit` - Exits the shell
+- `usage` - Provides a brief usage guide for the shell and its built-in commands
+- `env` - Lists all the environment variables currently set in the shell
+- `setenv` - Sets or modifies an environment variable for this shell session
+- `unsetenv` - Removes an environment variable from the shell
+
+
+## Additional Features Supported
+
+### Idle Resource Management
+We have implemented a feature where the shell reduces its resource usage while it is idle. Every 30 seconds the user does not submit any input, the shell would remind the user that it is in the idle state for visualisation purposes. Even if the user types a command halfway and the reminder appears, the user will be able to continue where he/she left off, without typing the entire command again. The shell would only wake up after a new command is entered by the user.
+
+
+
+
+## Sustainability and Inclusivity
+
+### Sustainability
+The implementation of Idle Resource Management allows the shell to reduce resource usage when the shell is idle. This would save the power of the shell and the system, which would in turn extend the battery life of the computer, save electricity and decrease overall power consumption. As such, it will contribute to sustainability.
