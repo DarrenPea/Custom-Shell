@@ -1,7 +1,11 @@
 // Include the shell header file for necessary constants and function declarations
 #include "shell.h"
+#include <stdbool.h>
 
 // Function to read a command from the user input
+bool speaking=false;
+int espeak_pitch=70;
+int espeak_speed=260;
 void read_command(char **cmd){
   // Define a character array to store the command line input
   char line[MAX_LINE];
@@ -27,6 +31,7 @@ void read_command(char **cmd){
   }
   else if (sel_val == 0) {
     printf("\nShell is idle. Continue where you left off in the above command.\n");
+    tts("Shell is idle. Continue where you left off in the above command.");
   }
   else {
     // Infinite loop to read characters until a newline or maximum line length is reached
@@ -80,6 +85,35 @@ void type_prompt()
   fflush(stdout);
 }
 
+//implement speaking in shell
+int shell_tts(char **args)
+{
+    speaking = !speaking;
+    if (speaking)
+    {
+        printf("Entering TTS Mode.\n");
+        tts("TTS activated.");
+    }
+    else
+    {
+        printf("Exiting TTS Mode.\n");
+        tts("Exiting TTS Mode.");
+    }
+    return 1;
+}
+
+void tts(const char *text)
+{
+    if (speaking)
+    {
+        char command[1024];
+        snprintf(command, sizeof(command), "espeak -p %d -s %d \"%s\"", espeak_pitch, espeak_speed, text);
+        if (system(command) == -1)
+        {
+            perror("Error executing espeak command");
+        }
+    }
+}
 int shell_cd(char **args)
 {
   char cwd[1024];
@@ -91,6 +125,8 @@ int shell_cd(char **args)
     if (getcwd(cwd, sizeof(cwd)) != NULL)
     {
       printf("Current working directory: %s\n", cwd);
+      tts("Current working directory is ");
+      tts(cwd);
     }
   }
   else
@@ -101,12 +137,18 @@ int shell_cd(char **args)
       {
         case ENOENT:
           printf("Directory does not exist: %s\n", args[1]);
+          tts("The following Directory does not exist");
+          tts(args[1]);
           break;
         case ENOTDIR:
           printf("Not a directory: %s\n", args[1]);
+          tts("The following input was not a directory");
+          tts(args[1]);
           break;
         default:
           printf("There is an invalid input: %s", args[1]);
+          tts("The following is an invalid input");
+          tts(args[1]);
       }
     }
     else
@@ -114,10 +156,13 @@ int shell_cd(char **args)
       if (getcwd(cwd, sizeof(cwd)) != NULL)
       {
         printf("Current working directory: %s\n", cwd);
+        tts("Your current working directory is");
+        tts(cwd);
       }
       else
       {
         printf("Failed to get current working directory");
+        tts("Failed to get current working directory");
       }
     }
   }
@@ -126,9 +171,12 @@ int shell_cd(char **args)
 
 int shell_help(char **args)
 {
-  printf("CSEShell Interface\nUsage: command arguments\nThe following commands are implemented within the shell:\n");
-  for (int i = 0; i < num_builtin_functions(); i++)
+
+    printf("CSEShell Interface\nUsage: command arguments\nThe following commands are implemented within the shell:\n");
+    tts("The following commands are implemented within the shell:");
+    for (int i = 0; i < num_builtin_functions(); i++)
   {
+        tts(builtin_commands[i]);
     printf("  %s\n", builtin_commands[i]);
   }
   return 1;
@@ -143,38 +191,53 @@ int shell_usage(char **args)
 {
   if (args[1] == NULL)
   {
+      tts("Command not given. Enter keyword usage followed by your command");
     printf("Command not given. Type usage <command>.\n");
   }
   else if (strcmp(args[1], "cd") == 0)
   {
+      tts("Type cd directory_name to change the current working directory of the shell");
     printf("Type: cd directory_name to change the current working directory of the shell. If no path is given, it defaults to the user's home directory.\n");
   }
   else if (strcmp(args[1], "help") == 0)
   {
+      tts("Type: help for supported commands");
     printf("Type: help for supported commands\n");
   }
   else if (strcmp(args[1], "exit") == 0)
   {
+      tts("Type: exit to terminate the shell gracefully");
     printf("Type: exit to terminate the shell gracefully\n");
   }
   else if (strcmp(args[1], "usage") == 0)
   {
-    printf("Type: usage cd/help/exit/env/setenv/unsetenv\n");
+      tts("Type: usage cd/help/exit/env/setenv/unsetenv/tts");
+    printf("Type: usage cd/help/exit/env/setenv/unsetenv/tts\n");
   }
   else if (strcmp(args[1], "env") == 0)
   {
+      tts("Type: env to list all registered environment variables");
     printf("Type: env to list all registered env variables\n");
   }
   else if (strcmp(args[1], "setenv") == 0)
   {
+      tts("Type: setenv ENV=VALUE to set a new environment variable");
     printf("Type: setenv ENV=VALUE to set a new env variable\n");
   }
   else if (strcmp(args[1], "unsetenv") == 0)
   {
+      tts("Type: unsetenv ENV to remove this env from the list of environment variables");
     printf("Type: unsetenv ENV to remove this env from the list of env variables\n");
+  }
+  else if (strcmp(args[1], "tts") == 0)
+  {
+      tts("Type: Toggle TTS");
+      printf("Type: toggle TTS.");
   }
   else
   {
+      tts("The following command is not part of CSEShell's suite of commands");
+      tts(args[1]);
     printf("The command you gave: %s, is not part of CSEShell's builtin command\n", args[1]);
   }
   return 1;
@@ -188,6 +251,7 @@ int list_env(char **args)
   // Loop until NULL pointer is encountered
   while (*env)
   {
+      tts(*env);
     printf("%s\n", *env); // Print the current environment variable
     env++; // Move to the next environment variable
   }
@@ -223,12 +287,14 @@ int main(void)
   char *rc_cmd[MAX_ARGS][MAX_ARGS];
   int num_rc_cmd = 0;
 
+
   //run .rc
   FILE *fptr;
 
   // Open rc file in read mode
   fptr = fopen(".cseshellrc", "r");
   if (fptr == NULL) {
+      tts("Failed to open file");
     perror("Failed to open file");
     return EXIT_FAILURE;
   }
@@ -249,6 +315,14 @@ int main(void)
       char *path = line + 5;
       setenv("PATH", path, 1);
       continue;
+    }
+    //check for TTS flag
+    else if(strncmp(line, "tts", 3) == 0) {
+        speaking=true;
+        printf("Entering TTS Mode.\n");
+        tts("TTS activated.");
+        continue;
+
     }
     // Store commands
     else {
@@ -286,6 +360,7 @@ int main(void)
     }
     else
     {
+        tts("Failed to get current working directory");
       printf("Failed to get current working directory.");
       exit(1);
     }
@@ -330,6 +405,7 @@ int main(void)
 
     if (pid < 0)
     {
+        tts("Fork failed");
       printf("Fork failed.");
       exit(1);
     }
@@ -339,6 +415,7 @@ int main(void)
       execvp(cmd[0], cmd);
 
       // if execvp returns, command execution has failed
+      tts("command not found");
       printf("Command %s not found\n", cmd[0]);
       exit(0);
 
@@ -361,6 +438,11 @@ int main(void)
       // checks child_exit_status and do something about it
       if (child_exit_status != 0)
       {
+          tts("Command failed with exit code");
+          char exitcode[128];
+          sprintf(exitcode, "%d", child_exit_status);
+          tts(exitcode);
+          tts(cmd[0]);
         printf("Command %s failed with exit code %d\n", cmd[0], child_exit_status);
       }
     }
@@ -405,6 +487,7 @@ int main(void)
 
     if (pid < 0)
     {
+        tts("Fork failed");
       printf("Fork failed.");
       exit(1);
     }
@@ -416,6 +499,8 @@ int main(void)
       execv(full_path, cmd);
 
       // if execv returns, command execution has failed
+      tts("The following command was not found");
+      tts(cmd[0]);
       printf("Command %s not found\n", cmd[0]);
       exit(0);
 
@@ -438,6 +523,7 @@ int main(void)
       // checks child_exit_status and do something about it
       if (child_exit_status != 0)
       {
+          tts("Command failed with exit code");
         printf("Command %s failed with exit code %d\n", cmd[0], child_exit_status);
       }
     }
