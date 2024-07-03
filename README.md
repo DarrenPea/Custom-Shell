@@ -82,7 +82,7 @@ Contains all the necessary source code for the shell and system programs. It is 
 ### Idle Resource Management
 We have implemented a feature where the shell reduces its resource usage while it is idle. Every 30 seconds the user does not submit any input, the shell would remind the user that it is in the idle state for visualisation purposes. Even if the user types a command halfway and the reminder appears, the user will be able to continue where he/she left off, without typing the entire command again. The shell would only wake up after a new command is entered by the user.
 
-##TTS flag in RC/ TTS mode
+### TTS flag in RC/ TTS mode
 You can add a "tts" line in your .cseshellrc file to enable TTS on terminal startup. This saves time and allows the user to customize whether or not they prefer Text-to-speech being enabled or not. The shell notifies you ehrn text-to-speech is enabled. To enable or disable TTS manually, the user can use the builtin function `tts`
 
 
