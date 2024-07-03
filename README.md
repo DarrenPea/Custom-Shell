@@ -74,6 +74,7 @@ Contains all the necessary source code for the shell and system programs. It is 
 - `env` - Lists all the environment variables currently set in the shell
 - `setenv` - Sets or modifies an environment variable for this shell session
 - `unsetenv` - Removes an environment variable from the shell
+- `tts` - Toggle text-to-speech mode
 
 
 ## Additional Features Supported
@@ -81,10 +82,13 @@ Contains all the necessary source code for the shell and system programs. It is 
 ### Idle Resource Management
 We have implemented a feature where the shell reduces its resource usage while it is idle. Every 30 seconds the user does not submit any input, the shell would remind the user that it is in the idle state for visualisation purposes. Even if the user types a command halfway and the reminder appears, the user will be able to continue where he/she left off, without typing the entire command again. The shell would only wake up after a new command is entered by the user.
 
-
+##TTS flag in RC/ TTS mode
+You can add a "tts" line in your .cseshellrc file to enable TTS on terminal startup. This saves time and allows the user to customize whether or not they prefer Text-to-speech being enabled or not. The shell notifies you ehrn text-to-speech is enabled. To enable or disable TTS manually, the user can use the builtin function `tts`
 
 
 ## Sustainability and Inclusivity
 
 ### Sustainability
 The implementation of Idle Resource Management allows the shell to reduce resource usage when the shell is idle. This would save the power of the shell and the system, which would in turn extend the battery life of the computer, save electricity and decrease overall power consumption. As such, it will contribute to sustainability.
+### Inclusivity
+The implementation of a Text-to-speech mode allows for visually impaired users to interact with the terminal, which would open computing to a much more diverse demographic of visually impaired persons. Therefore, it contributes to the inclusivity effort.
