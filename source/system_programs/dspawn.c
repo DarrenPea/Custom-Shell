@@ -78,13 +78,17 @@ int main() {
 	}
 	// child process
 	else if (pid == 0) {
+		// setsid() to make intermediate process be session leader and lose controlling terminal (requirement for daemon process)
 		if (setsid() < 0) {
 			exit(EXIT_FAILURE);
 		}
 
+		// ensure child of intermediate process will not be zombie process
 		signal(SIGCHLD, SIG_IGN);
+		// if session leader terminated, SIGHUP received and its children will be killed
 		signal(SIGHUP, SIG_IGN);
 
+		// creating the daemon process (child)
 		pid = fork();
 
 		if (pid < 0) {
@@ -94,17 +98,19 @@ int main() {
 		// child process
 		else if (pid == 0) {
 			
+			// set permission to 0777
 			umask(0);
 
+			// ensure daemon run in safe location that will never be mounted
 			chdir("/");
 
+			// close all open file descriptors
 			int x, fd0, fd1, fd2;
 			for (x = sysconf(_SC_OPEN_MAX); x>=0; x--) {
 				close (x);
 			}
 
-			/*
-			* Attach file descriptors 0, 1, and 2 to /dev/null. */
+			// Attach file descriptors 0, 1, and 2 to /dev/null
 			fd0 = open("/dev/null", O_RDWR);
 			fd1 = dup(0);
 			fd2 = dup(0);

@@ -85,7 +85,7 @@ void type_prompt()
   fflush(stdout);
 }
 
-//implement speaking in shell
+// implement speaking in shell
 int shell_tts(char **args)
 {
     speaking = !speaking;
@@ -114,11 +114,14 @@ void tts(const char *text)
         }
     }
 }
+
+// implementing 'cd' function
 int shell_cd(char **args)
 {
   char cwd[1024];
   char* pwd = getenv("PWD");
 
+  // if only 'cd' is input, change directory to the project directory
   if (args[1] == NULL)
   {
     chdir(pwd);
@@ -129,10 +132,12 @@ int shell_cd(char **args)
       tts(cwd);
     }
   }
+  // if 'cd ___' is input
   else
   {
     if (chdir(args[1]) != 0)
     {
+      // handles the error if directory does not exist, etc
       switch (errno)
       {
         case ENOENT:
@@ -153,6 +158,7 @@ int shell_cd(char **args)
     }
     else
     {
+      // changes the directory as per intended
       if (getcwd(cwd, sizeof(cwd)) != NULL)
       {
         printf("Current working directory: %s\n", cwd);
@@ -169,80 +175,95 @@ int shell_cd(char **args)
   return 1;
 }
 
+// implement 'help' function
 int shell_help(char **args)
 {
 
     printf("CSEShell Interface\nUsage: command arguments\nThe following commands are implemented within the shell:\n");
     tts("The following commands are implemented within the shell:");
+    // prints out all builtin functions
     for (int i = 0; i < num_builtin_functions(); i++)
   {
-        tts(builtin_commands[i]);
+    tts(builtin_commands[i]);
     printf("  %s\n", builtin_commands[i]);
   }
   return 1;
 }
 
+// implement 'exit' function
 int shell_exit(char **args)
 {
   return 0;
 }
 
+// implement 'usage' function
 int shell_usage(char **args)
 {
+  // if user types 'usage'
   if (args[1] == NULL)
   {
-      tts("Command not given. Enter keyword usage followed by your command");
+    tts("Command not given. Enter keyword usage followed by your command");
     printf("Command not given. Type usage <command>.\n");
   }
+  // if user types 'usage cd'
   else if (strcmp(args[1], "cd") == 0)
   {
-      tts("Type cd directory_name to change the current working directory of the shell");
+    tts("Type cd directory_name to change the current working directory of the shell");
     printf("Type: cd directory_name to change the current working directory of the shell. If no path is given, it defaults to the user's home directory.\n");
   }
+  // if user types 'usage help'
   else if (strcmp(args[1], "help") == 0)
   {
-      tts("Type: help for supported commands");
+    tts("Type: help for supported commands");
     printf("Type: help for supported commands\n");
   }
+  // if user types 'usage exit'
   else if (strcmp(args[1], "exit") == 0)
   {
-      tts("Type: exit to terminate the shell gracefully");
+    tts("Type: exit to terminate the shell gracefully");
     printf("Type: exit to terminate the shell gracefully\n");
   }
+  // if user types 'usage usage'
   else if (strcmp(args[1], "usage") == 0)
   {
-      tts("Type: usage cd/help/exit/env/setenv/unsetenv/tts");
+    tts("Type: usage cd/help/exit/env/setenv/unsetenv/tts");
     printf("Type: usage cd/help/exit/env/setenv/unsetenv/tts\n");
   }
+  // if user types 'usage env'
   else if (strcmp(args[1], "env") == 0)
   {
-      tts("Type: env to list all registered environment variables");
+    tts("Type: env to list all registered environment variables");
     printf("Type: env to list all registered env variables\n");
   }
+  // if user types 'usage setenv'
   else if (strcmp(args[1], "setenv") == 0)
   {
-      tts("Type: setenv ENV=VALUE to set a new environment variable");
+    tts("Type: setenv ENV=VALUE to set a new environment variable");
     printf("Type: setenv ENV=VALUE to set a new env variable\n");
   }
+  // if user types 'usage unsetenv'
   else if (strcmp(args[1], "unsetenv") == 0)
   {
-      tts("Type: unsetenv ENV to remove this env from the list of environment variables");
+    tts("Type: unsetenv ENV to remove this env from the list of environment variables");
     printf("Type: unsetenv ENV to remove this env from the list of env variables\n");
   }
+  // if user types 'usage tts'
   else if (strcmp(args[1], "tts") == 0)
   {
-      tts("Type: Toggle TTS");
-      printf("Type: toggle TTS.");
+    tts("Type: Toggle TTS");
+    printf("Type: toggle TTS.");
   }
+  // if user types 'usage <command>' but <command> is not available
   else
   {
-      tts("The following command is not part of CSEShell's suite of commands");
-      tts(args[1]);
+    tts("The following command is not part of CSEShell's suite of commands");
+    tts(args[1]);
     printf("The command you gave: %s, is not part of CSEShell's builtin command\n", args[1]);
   }
   return 1;
 }
 
+// implement 'env' function
 int list_env(char **args)
 {
   extern char **environ;
@@ -251,7 +272,7 @@ int list_env(char **args)
   // Loop until NULL pointer is encountered
   while (*env)
   {
-      tts(*env);
+    tts(*env);
     printf("%s\n", *env); // Print the current environment variable
     env++; // Move to the next environment variable
   }
@@ -259,12 +280,14 @@ int list_env(char **args)
   return 1;
 }
 
+// implement 'setenv' function
 int set_env_var(char **args)
 {
   putenv(args[1]);
   return 1;
 }
 
+// implement 'unsetenv' function
 int unset_env_var(char **args)
 {
   unsetenv(args[1]);
@@ -294,7 +317,7 @@ int main(void)
   // Open rc file in read mode
   fptr = fopen(".cseshellrc", "r");
   if (fptr == NULL) {
-      tts("Failed to open file");
+    tts("Failed to open file");
     perror("Failed to open file");
     return EXIT_FAILURE;
   }
@@ -310,13 +333,13 @@ int main(void)
       *newline = '\0';
     }
 
-    // Check for "PATH"
+    // Check for "PATH" in .cseshellrc and set the env for this shell session
     if (strncmp(line, "PATH", 4) == 0) {
       char *path = line + 5;
       setenv("PATH", path, 1);
       continue;
     }
-    //check for TTS flag
+    // check for TTS flag, if true then turn on text-to-speech mode
     else if(strncmp(line, "tts", 3) == 0) {
         speaking=true;
         printf("Entering TTS Mode.\n");
@@ -360,7 +383,7 @@ int main(void)
     }
     else
     {
-        tts("Failed to get current working directory");
+      tts("Failed to get current working directory");
       printf("Failed to get current working directory.");
       exit(1);
     }
@@ -405,7 +428,7 @@ int main(void)
 
     if (pid < 0)
     {
-        tts("Fork failed");
+      tts("Fork failed");
       printf("Fork failed.");
       exit(1);
     }
@@ -496,7 +519,7 @@ int main(void)
     {
       snprintf(full_path, sizeof(full_path), "%s/bin/%s", wd, cmd[0]);
 
-      execv(full_path, cmd);
+      execvp(cmd[0], cmd);
 
       // if execv returns, command execution has failed
       tts("The following command was not found");

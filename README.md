@@ -1,4 +1,3 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/u16ttUuk)
 # CSEShell
 
 CSEShell is a simple, custom shell for Unix-based systems, designed to provide an interface for executing system programs. This project includes a basic shell implementation, a set of system programs (`find`, `ld`, `ldr`), and some test files.
@@ -66,7 +65,7 @@ make clean
 Contains all the necessary source code for the shell and system programs. It is divided into the shell implementation (`shell.c`, `shell.h`) and system programs (`system_programs/`).
 
 
-## Builtin Functions Supported
+## Builtin Functions Implemented
 - `cd` - Changes the current directory of the shell to the specified path. If no path is given, it defaults to the project directory.
 - `help` - List all builtin commands in the shell.
 - `exit` - Exits the shell
@@ -76,8 +75,25 @@ Contains all the necessary source code for the shell and system programs. It is 
 - `unsetenv` - Removes an environment variable from the shell
 - `tts` - Toggle text-to-speech mode
 
+## System Programs Implemented
 
-## Additional Features Supported
+I created 4 more system programs: **sys**, **dspawn**, **dcheck** and **backup** and their corresponding files can be found in `/source/system_programs`
+
+- `sys` - Prints out basic information about the OS, user information, uptime, CPU and memory information
+- `dspawn` - Summons a daemon process and then terminates so the shell can continue displaying the next prompt
+- `dcheck` - Checks how many live daemons from `dspawn` are alive right now
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/DarrenPea/Custom-Shell/refs/heads/main/images/dcheck.png" />
+</p>
+
+- `backup` - Automatically zips a directory/file whose name matches environment variable, `BACKUP_DIR`, and moves the zipped directory to `[PROJECT_DIR]/archive/`. The backup directory can be set using `setenv BACKUP_DIR=___`. The filename of the zipped file includes the datetime when `backup` is executed
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/DarrenPea/Custom-Shell/refs/heads/main/images/backup.png" />
+</p>
+
+## Additional Features Implemented
 
 ### Idle Resource Management
 We have implemented a feature where the shell reduces its resource usage while it is idle. Every 30 seconds the user does not submit any input, the shell would remind the user that it is in the idle state for visualisation purposes. Even if the user types a command halfway and the reminder appears, the user will be able to continue where he/she left off, without typing the entire command again. The shell would only wake up after a new command is entered by the user.
